@@ -1,0 +1,45 @@
+/* SupervisorInterface.css - Stylish and functional */
+
+.supervisor-container {
+  padding: 2rem;
+  background-color: #f0fdf4;
+  min-height: 100vh;
+}
+
+.supervisor-header {
+  font-size: 1.75rem;
+  color: #065f46;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.supervisor-grid {
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.supervisor-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+  transition: box-shadow 0.3s ease;
+}
+
+.supervisor-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.card-description {
+  color: #6b7280;
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+}
