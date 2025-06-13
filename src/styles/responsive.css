@@ -1,0 +1,47 @@
+/* Mobile First Approach */
+@media (max-width: 768px) {
+  .ice-panel {
+    padding: 15px;
+  }
+  
+  .igloo-card {
+    padding: 15px;
+  }
+  
+  .navbar button {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  .stat-card {
+    min-width: 100%;
+  }
+  
+  .household-registration form {
+    grid-template-columns: 1fr;
+  }
+  
+  .payment-record form {
+    grid-template-columns: 1fr;
+  }
+  
+  .route-optimizer > div {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Tablet Styles */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .stat-card {
+    min-width: calc(50% - 10px);
+  }
+  
+  .household-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Desktop Styles */
+@media (min-width: 1025px) {
+  /* Most styles are desktop-first in this project */
+}
