@@ -1,0 +1,3 @@
+# .env file
+# Contains sensitive information like API keys. Do not commit to git.
+.env

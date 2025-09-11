@@ -22,7 +22,7 @@ function App() {
   const [snowEnabled, setSnowEnabled] = useState(true); // You can keep this for the effect
 
   useEffect(() => {
-    fetch('http://solid-space-garbanzo-q7vgjqr96j5429p7w-5000/api/households')
+    fetch('http://localhost:5000/api/households')
       .then(res => res.json())
       .then(data => setHouseholds(data))
       .catch(err => console.error('Error fetching data:', err));
