@@ -1,23 +1,28 @@
+// src/App.js
+
 import React, { useState, useEffect } from 'react';
 import './styles/main.css';
 import './styles/ice-theme.css';
 import './styles/animations.css';
 import './styles/responsive.css';
+
+// Component Imports
 import Navbar from './components/Navbar';
 import Dashboard from './components/Dashboard/Dashboard';
 import HouseholdList from './components/Household/HouseholdList';
 import MapView from './components/MapView';
 import PaymentTracker from './components/Payments/PaymentTracker';
 import SnowfallEffect from './components/Dashboard/SnowfallEffect';
+import Chatbot from './components/Chatbot'; // <-- 1. Import the new Chatbot component
 import { ThemeProvider } from './contexts/ThemeContext';
 
 function App() {
   const [households, setHouseholds] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [snowEnabled, setSnowEnabled] = useState(true);
+  const [snowEnabled, setSnowEnabled] = useState(true); // You can keep this for the effect
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/households')
+    fetch('http://solid-space-garbanzo-q7vgjqr96j5429p7w-5000/api/households')
       .then(res => res.json())
       .then(data => setHouseholds(data))
       .catch(err => console.error('Error fetching data:', err));
@@ -76,23 +81,11 @@ function App() {
           {activeTab === 'payments' && <PaymentTracker households={households} />}
         </div>
         
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          zIndex: 1000
-        }}>
-          <button 
-            onClick={() => setSnowEnabled(!snowEnabled)}
-            className="ice-button pulse"
-            style={{
-              padding: '10px 15px',
-              fontSize: '12px'
-            }}
-          >
-            {snowEnabled ? '❄️ Disable Snow' : '❄️ Enable Snow'}
-          </button>
-        </div>
+        {/* <-- 2. The old snow toggle button div is removed from here. */}
+
+        {/* 3. Add the Chatbot component. It will render its own floating button. */}
+        <Chatbot />
+
       </div>
     </ThemeProvider>
   );
