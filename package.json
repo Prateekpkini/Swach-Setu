@@ -1,6 +1,7 @@
 {
   "name": "rural-waste-management",
   "version": "1.0.0",
+  "type": "commonjs",
   "private": true,
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -9,6 +10,7 @@
     "dotenv": "^17.2.2",
     "express": "^4.18.2",
     "leaflet": "^1.9.4",
+    "mssql": "^11.0.1",
     "react": "^18.2.0",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^18.2.0",
@@ -22,7 +24,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "server": "node server/server.js"
+    "server": "node Server/server.js"
   },
   "eslintConfig": {
     "extends": [
