@@ -7,13 +7,13 @@ import './styles/animations.css';
 import './styles/responsive.css';
 
 // Component Imports
-import Navbar from './components/Navbar';
-import Dashboard from './components/Dashboard/Dashboard';
-import HouseholdList from './components/Household/HouseholdList';
-import MapView from './components/MapView';
-import PaymentTracker from './components/Payments/PaymentTracker';
-import Chatbot from './components/Chatbot'; // <-- 1. Import the new Chatbot component
-import { ThemeProvider } from './contexts/ThemeContext';
+import Navbar from './components/Navbar.js';
+import Dashboard from './components/Dashboard.js';
+import HouseholdList from './components/HouseholdList.js';
+import MapView from './components/MapView.js';
+import PaymentTracker from './components/Payments/PaymentTracker.js';
+import Chatbot from './components/Chatbot.jsx'; // <-- 1. Import the new Chatbot component
+import { ThemeProvider } from './contexts/ThemeContext.jsx';
 
 function App() {
   const [households, setHouseholds] = useState([]);

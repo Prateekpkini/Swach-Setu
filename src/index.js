@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import App from './App';
+import App from './App.js';
 import './styles/main.css';
 import './styles/ice-theme.css';
 import './styles/animations.css';

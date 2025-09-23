@@ -1,5 +1,5 @@
 import React from 'react';
-import IcePanel from '../IcePanel';
+import IcePanel from './IcePanel.jsx';
 import { FaTrash, FaMoneyBillWave, FaRecycle } from 'react-icons/fa';
 
 function Dashboard({ households }) {

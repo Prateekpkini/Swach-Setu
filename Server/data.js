@@ -902,4 +902,4 @@ const households = [
     }
 ];
 
-module.exports = { households };
+export default { households };

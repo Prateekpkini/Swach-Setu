@@ -1,20 +1,29 @@
 // Server/server.js
 
-const express = require('express'); 
-const cors = require('cors'); 
-const data = require('./data'); 
-const sql = require('mssql')
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '.env') }); // Load environment variables const sql = require('mssql');
-console.log('DB SERVER:', process.env.AZURE_DB_SERVER);  // should print server name
-console.log('DB NAME:', process.env.AZURE_DB_NAME);
+import express from "express";
+import cors from "cors";
+import path from "path";
+import dotenv from "dotenv";
+import sql from "mssql";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+// Resolve __dirname equivalent in ESM
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+// Load environment variables
+dotenv.config({ path: path.resolve(__dirname, ".env") });
 
-// Initialize the Gemini client
+// Import local module (adjust extension if needed)
+import data from "./data.js";
+
+// Debug logs
+console.log("DB SERVER:", process.env.AZURE_DB_SERVER);
+console.log("DB NAME:", process.env.AZURE_DB_NAME);
+
+// Initialize Gemini client
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-// New, updated line
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
 const app = express();
