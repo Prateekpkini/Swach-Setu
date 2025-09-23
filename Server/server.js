@@ -25,6 +25,17 @@ console.log("DB NAME:", process.env.AZURE_DB_NAME);
 // Initialize Gemini client
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+const dbConfig = {
+  user: process.env.AZURE_DB_USER,
+  password: process.env.AZURE_DB_PASS,
+  server: process.env.AZURE_DB_SERVER,
+  database: process.env.AZURE_DB_NAME,
+  port: 1433,
+  options: {
+    encrypt: true,
+    trustServerCertificate: false
+  }
+};
 
 const app = express();
 app.use(cors());
@@ -71,90 +82,41 @@ app.post('/api/chatbot', async (req, res) => {
   }
 });
 
-// -------------------- QR Scan API --------------------
-app.post("/api/collect", async (req, res) => {
-  const { householdId, collectorName } = req.body; // decoded from QR
-  if (!householdId) return res.status(400).json({ error: "Household ID required" });
+// For database
+import sqlite3 from "sqlite3"; // For local testing
+sqlite3.verbose(); // enable verbose mode
 
-  try {
-    const pool = await sql.connect(dbConfig);
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-
-    // Update today's log to Collected
-    const result = await pool.request()
-      .input("householdId", sql.NVarChar, householdId)
-      .input("status", sql.NVarChar, "Collected")
-      .input("collectorName", sql.NVarChar, collectorName || null)
-      .input("today", sql.NVarChar, today)
-      .query(`
-        UPDATE CollectionLogs
-        SET Status=@status, CollectorName=@collectorName
-        WHERE HouseholdID=@householdId
-          AND CAST(CollectedOn AS DATE) = CAST(GETDATE() AS DATE)
-      `);
-
-    // If no log existed for today (shouldn’t happen because of daily insertion), insert one
-    if (result.rowsAffected[0] === 0) {
-      await pool.request()
-        .input("householdId", sql.NVarChar, householdId)
-        .input("status", sql.NVarChar, "Collected")
-        .input("collectorName", sql.NVarChar, collectorName || null)
-        .query(`
-          INSERT INTO CollectionLogs (HouseholdID, CollectedOn, CollectorName, Status)
-          VALUES (@householdId, GETDATE(), @collectorName, @status)
-        `);
-    }
-
-    res.json({ success: true, message: "Household marked as Collected", householdId });
-    await pool.close();
-
-  } catch (err) {
-    console.error("DB Error:", err);
-    res.status(500).json({ error: "Database error" });
-  }
+// Connect to SQLite (replace with Azure SQL connection if needed)
+const db = new sqlite3.Database("./collectionLogs.db", (err) => {
+  if (err) console.error("DB connection error:", err);
+  else console.log("Connected to database");
 });
 
-async function addDailyPendingLogs() {
-  try {
-    const pool = await sql.connect(dbConfig);
+// API: Fetch all household logs
+app.get("/api/households", (req, res) => {
+  const query = `SELECT * FROM CollectionLogs ORDER BY HouseholdID`;
+  db.all(query, [], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(rows);
+  });
+});
 
-    // Today's date in YYYY-MM-DD format
-    const today = new Date().toISOString().slice(0, 10);
-
-    // Insert households that do NOT already have a log for today
-    await pool.request()
-      .input("today", sql.NVarChar, today)
-      .query(`
-        INSERT INTO CollectionLogs (HouseholdID, CollectedOn, Status)
-        SELECT h.HouseholdID, GETDATE(), 'Pending'
-        FROM Households h
-        WHERE NOT EXISTS (
-          SELECT 1 
-          FROM CollectionLogs c
-          WHERE c.HouseholdID = h.HouseholdID
-            AND CAST(c.CollectedOn AS DATE) = @today
-        )
-      `);
-
-    console.log("✅ Daily Pending Logs added for today:", today);
-    await pool.close();
-  } catch (err) {
-    console.error("❌ Error adding daily pending logs:", err);
-  }
-}
+// API: Fetch single household by ID
+app.get("/api/households/:id", (req, res) => {
+  const householdID = req.params.id;
+  const query = `SELECT * FROM CollectionLogs WHERE HouseholdID = ?`;
+  db.get(query, [householdID], (err, row) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    if (!row) return res.status(404).json({ error: "Household not found" });
+    res.json(row);
+  });
+});
 
 
-const dbConfig = {
-  user: process.env.AZURE_DB_USER,
-  password: process.env.AZURE_DB_PASS,
-  server: process.env.AZURE_DB_SERVER,
-  database: process.env.AZURE_DB_NAME,
-  port: 1433,
-  options: {
-    encrypt: true,
-    trustServerCertificate: false
-  }
-};
 // should print your server
 async function startServer() {
   try {
@@ -174,8 +136,6 @@ async function startServer() {
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
-     // Add today's pending logs
-    await addDailyPendingLogs();
 
   } catch (err) {
     console.error('❌ Azure SQL connection failed:', err);
