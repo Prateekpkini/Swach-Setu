@@ -16,6 +16,25 @@ function MapView({ households }) {
     ? [households[0].latitude, households[0].longitude]
     : [12.7000, 75.5000];
 
+    const greenIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+const redIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+
   return (
     <div className="map-view">
       <h2>Household Locations</h2>
@@ -29,6 +48,7 @@ function MapView({ households }) {
             <Marker 
               key={household.household_id} 
               position={[household.latitude, household.longitude]}
+              icon={household.fee_status === "paid" ? greenIcon : redIcon}
             >
               <Popup>
                 <div>

@@ -50,20 +50,7 @@ const HouseholdCard = ({ household }) => {
         </div>
       </div>
       
-      <div style={{
-        marginTop: '15px',
-        paddingTop: '15px',
-        borderTop: '1px solid rgba(0, 0, 0, 0.1)',
-        display: 'flex',
-        justifyContent: 'flex-end'
-      }}>
-        <button className="ice-button" style={{
-          padding: '8px 16px',
-          fontSize: '12px'
-        }}>
-          View Details
-        </button>
-      </div>
+      
     </div>
   );
 };

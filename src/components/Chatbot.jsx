@@ -4,7 +4,7 @@ import { FaCommentDots, FaPaperPlane, FaSpinner } from 'react-icons/fa';
 const Chatbot = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([
-        { sender: 'bot', text: 'Hello! I am SwachaPatha Helper. How can I help you with the waste collection data today?' }
+        { sender: 'bot', text: 'Hello! I am SwachaSetu Helper. How can I help you with the waste collection data today?' }
     ]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -56,7 +56,7 @@ const Chatbot = () => {
             {isOpen && (
                 <div style={styles.chatWindow}>
                     <div style={styles.chatHeader}>
-                        <h3>SwatchaPatha Helper</h3>
+                        <h3>SwatchaSetu Helper</h3>
                         <button onClick={() => setIsOpen(false)} style={styles.closeButton}>&times;</button>
                     </div>
                     <div style={styles.chatBody}>

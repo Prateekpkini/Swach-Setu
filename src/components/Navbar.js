@@ -93,6 +93,26 @@ const Navbar = ({ activeTab, setActiveTab }) => {
           <FaMoneyBillWave size={20} />
           <span style={{ marginTop: '5px', fontSize: '12px' }}>Payments</span>
         </button>
+        
+        
+        <button 
+          onClick={() => setActiveTab('payments')}
+          style={{
+            background: activeTab === 'payments' ? 'rgba(79, 195, 247, 0.2)' : 'transparent',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            color: activeTab === 'payments' ? 'var(--ice-dark)' : 'var(--ice-text)'
+          }}
+        >
+          <FaMoneyBillWave size={20} />
+          <span style={{ marginTop: '5px', fontSize: '12px' }}>Payments</span>
+        </button>
       </div>
     </nav>
   );

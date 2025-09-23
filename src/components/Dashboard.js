@@ -10,7 +10,7 @@ function Dashboard({ households }) {
   const wasteTypes = {
     mixed: households.filter(h => h.waste_type_preference === 'mixed').length,
     dry: households.filter(h => h.waste_type_preference === 'dry').length,
-    wet: households.filter(h => h.waste_type_preference === 'wet').length
+    wet: households.filter(h => h.waste_type_pzreference === 'wet').length
   };
 
   return (

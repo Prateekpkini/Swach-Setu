@@ -3,7 +3,7 @@ import { FaSnowflake } from 'react-icons/fa';
 import '../../../styles/animations.css';
 
 const SnowToggle = () => {
-  const [snowEnabled, setSnowEnabled] = useState(true);
+  const [snowEnabled, setSnowEnabled] = useState(false);
 
   useEffect(() => {
     const toggleSnowfall = () => {
