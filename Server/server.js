@@ -4,7 +4,6 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import dotenv from "dotenv";
-import sql from "mssql";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Resolve __dirname equivalent in ESM
@@ -25,23 +24,12 @@ console.log("DB NAME:", process.env.AZURE_DB_NAME);
 // Initialize Gemini client
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-const dbConfig = {
-  user: process.env.AZURE_DB_USER,
-  password: process.env.AZURE_DB_PASS,
-  server: process.env.AZURE_DB_SERVER,
-  database: process.env.AZURE_DB_NAME,
-  port: 1433,
-  options: {
-    encrypt: true,
-    trustServerCertificate: false
-  }
-};
 
 const app = express();
 app.use(cors());
 app.use(express.json()); // Add this line to parse JSON request bodies
 
-app.get('/api/households', (req, res) => {
+app.get("/api/households", (req, res) => {
   res.json(data.households);
 });
 
@@ -82,64 +70,8 @@ app.post('/api/chatbot', async (req, res) => {
   }
 });
 
-// For database
-import sqlite3 from "sqlite3"; // For local testing
-sqlite3.verbose(); // enable verbose mode
-
-// Connect to SQLite (replace with Azure SQL connection if needed)
-const db = new sqlite3.Database("./collectionLogs.db", (err) => {
-  if (err) console.error("DB connection error:", err);
-  else console.log("Connected to database");
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log("Using static data from data.js");
 });
-
-// API: Fetch all household logs
-app.get("/api/households", (req, res) => {
-  const query = `SELECT * FROM CollectionLogs ORDER BY HouseholdID`;
-  db.all(query, [], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    res.json(rows);
-  });
-});
-
-// API: Fetch single household by ID
-app.get("/api/households/:id", (req, res) => {
-  const householdID = req.params.id;
-  const query = `SELECT * FROM CollectionLogs WHERE HouseholdID = ?`;
-  db.get(query, [householdID], (err, row) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    if (!row) return res.status(404).json({ error: "Household not found" });
-    res.json(row);
-  });
-});
-
-
-// should print your server
-async function startServer() {
-  try {
-    console.log(process.env.AZURE_DB_SERVER); 
-    const pool = await sql.connect(dbConfig);
-    console.log('✅ Connected to Azure SQL!');
-
-    const app = express();
-    app.use(cors());
-    app.use(express.json());
-
-    app.get('/api/households', (req, res) => {
-      res.json(data.households);
-    });
-
-    const PORT = 5000;
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-
-  } catch (err) {
-    console.error('❌ Azure SQL connection failed:', err);
-  }
-}
-
-startServer();
