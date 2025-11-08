@@ -142,6 +142,117 @@ app.get('/api/today-collections', async (req, res) => {
     }
 });
 
+// --- API Route to manually update payment status ---
+app.post('/api/update-payment', async (req, res) => {
+    try {
+        const { householdId, status } = req.body;
+        
+        if (!householdId) {
+            return res.status(400).json({ success: false, message: 'Household ID is required' });
+        }
+        
+        if (!['paid', 'unpaid'].includes(status)) {
+            return res.status(400).json({ success: false, message: 'Status must be "paid" or "unpaid"' });
+        }
+        
+        const { error } = await supabase
+            .from('Households')
+            .update({ FeeStatus: status })
+            .eq('HouseholdID', householdId);
+        
+        if (error) throw error;
+        
+        console.log(`✅ Manually updated payment status to '${status}' for household ${householdId}`);
+        res.status(200).json({ 
+            success: true, 
+            message: `Payment status updated to '${status}' for household ${householdId}` 
+        });
+        
+    } catch (err) {
+        console.error("Error updating payment status:", err.message);
+        res.status(500).json({ success: false, message: 'Error updating payment status', error: err.message });
+    }
+});
+
+// --- API Route for GET method (backward compatibility) ---
+app.get('/api/update-payment/:householdId/:status', async (req, res) => {
+    try {
+        const { householdId, status } = req.params;
+        
+        if (!['paid', 'unpaid'].includes(status)) {
+            return res.status(400).json({ success: false, message: 'Status must be "paid" or "unpaid"' });
+        }
+        
+        const { error } = await supabase
+            .from('Households')
+            .update({ FeeStatus: status })
+            .eq('HouseholdID', householdId);
+        
+        if (error) throw error;
+        
+        console.log(`✅ Updated payment status to '${status}' for household ${householdId}`);
+        res.status(200).json({ 
+            success: true, 
+            message: `Payment status updated to '${status}' for household ${householdId}` 
+        });
+        
+    } catch (err) {
+        console.error("Error updating payment status:", err.message);
+        res.status(500).json({ success: false, message: 'Error updating payment status', error: err.message });
+    }
+});
+
+// --- API Route to refresh/sync household payment status ---
+app.post('/api/sync-payments', async (req, res) => {
+    try {
+        console.log("Syncing payment status based on today's collections...");
+        const today_ist = getTodayIST();
+        const startOfTodayIST = `${today_ist}T00:00:00+05:30`;
+        const endOfTodayIST = `${today_ist}T23:59:59+05:30`;
+
+        // Get all households that were collected today
+        const { data: collectedToday, error: collectedError } = await supabase
+            .from('CollectionLogs')
+            .select('HouseholdID')
+            .eq('Status', 'collected')
+            .gte('CollectedOn', startOfTodayIST)
+            .lte('CollectedOn', endOfTodayIST);
+
+        if (collectedError) throw collectedError;
+
+        const collectedHouseholdIds = collectedToday.map(log => log.HouseholdID);
+
+        // Update payment status: 'paid' for collected, 'unpaid' for not collected
+        if (collectedHouseholdIds.length > 0) {
+            // Set collected households to 'paid'
+            const { error: paidError } = await supabase
+                .from('Households')
+                .update({ FeeStatus: 'paid' })
+                .in('HouseholdID', collectedHouseholdIds);
+
+            if (paidError) throw paidError;
+
+            // Set non-collected households to 'unpaid'
+            const { error: unpaidError } = await supabase
+                .from('Households')
+                .update({ FeeStatus: 'unpaid' })
+                .not('HouseholdID', 'in', `(${collectedHouseholdIds.map(id => `'${id}'`).join(',')})`);
+
+            if (unpaidError) throw unpaidError;
+        }
+
+        res.status(200).json({ 
+            success: true, 
+            message: `Payment status synced. ${collectedHouseholdIds.length} households marked as paid.`,
+            collectedCount: collectedHouseholdIds.length
+        });
+
+    } catch (err) {
+        console.error("Error syncing payment status:", err.message);
+        res.status(500).json({ success: false, message: 'Error syncing payment status', error: err.message });
+    }
+});
+
 // --- API Route to update collection status ---
 app.get('/collect', async (req, res) => {
     const houseId = req.query.houseid;
@@ -171,8 +282,8 @@ app.get('/collect', async (req, res) => {
         if (updateError) throw updateError;
 
         if (updateCount > 0) {
-            // SUCCESS: We updated a pending log.
-            return res.status(200).json({ success: true, message: `Household ${houseId} status updated to 'collected'.` });
+            // SUCCESS: We updated a pending log (collection only, payment is separate)
+            return res.status(200).json({ success: true, message: `Household ${houseId} marked as collected.` });
         }
 
         // --- Step 2: If update failed (count=0), check if it's already collected. ---
@@ -205,6 +316,7 @@ app.get('/collect', async (req, res) => {
                 });
             
             if (insertError) throw insertError;
+            
             return res.status(201).json({ success: true, message: `Collection logged for Household ${houseId}.` });
         }
         
@@ -257,13 +369,15 @@ async function addDailyPendingLogs() {
             CollectedOn: startOfTodayIST // Set to start of the day
         }));
 
-    // 4. Insert the missing logs
+    // 4. Insert the missing logs (payment status is managed separately)
     if (householdsToInsert.length > 0) {
+        // Insert new collection logs
         const { error: insertError } = await supabase
             .from('CollectionLogs')
             .insert(householdsToInsert);
         
         if (insertError) throw insertError;
+        
         console.log(`✅ Inserted ${householdsToInsert.length} new 'pending' logs for today.`);
     } else {
         console.log(`✅ Daily 'pending' logs for ${today_ist} are already present.`);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaHome, FaUsers, FaMapMarkedAlt, FaMoneyBillWave } from 'react-icons/fa';
+import { FaHome, FaUsers, FaMapMarkedAlt, FaMoneyBillWave, FaClipboardList } from 'react-icons/fa';
 
 const Navbar = ({ activeTab, setActiveTab }) => {
   return (
@@ -73,6 +73,25 @@ const Navbar = ({ activeTab, setActiveTab }) => {
         >
           <FaMapMarkedAlt size={20} />
           <span style={{ marginTop: '5px', fontSize: '12px' }}>Map</span>
+        </button>
+        
+        <button 
+          onClick={() => setActiveTab('collections')}
+          style={{
+            background: activeTab === 'collections' ? 'rgba(79, 195, 247, 0.2)' : 'transparent',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            color: activeTab === 'collections' ? 'var(--ice-dark)' : 'var(--ice-text)'
+          }}
+        >
+          <FaClipboardList size={20} />
+          <span style={{ marginTop: '5px', fontSize: '12px' }}>Collections</span>
         </button>
         
         <button 

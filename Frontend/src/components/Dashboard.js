@@ -2,7 +2,7 @@ import React from 'react';
 import IcePanel from './IcePanel.jsx';
 import { FaTrash, FaMoneyBillWave, FaRecycle } from 'react-icons/fa';
 
-function Dashboard({ households, collectionLogs, todayCollections }) {
+function Dashboard({ households, collectionLogs, todayCollections, onRefresh }) {
   const totalHouseholds = households.length;
   
   // Handle both static data format and Supabase format
@@ -48,14 +48,38 @@ function Dashboard({ households, collectionLogs, todayCollections }) {
 
   return (
     <div className="dashboard">
-      <h2 style={{
-        color: 'var(--ice-dark)',
-        textAlign: 'center',
-        marginBottom: '30px',
-        fontSize: '2rem',
-        fontWeight: '300',
-        letterSpacing: '1px'
-      }}>Waste Collection Overview</h2>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: '30px' 
+      }}>
+        <h2 style={{
+          color: 'var(--ice-dark)',
+          fontSize: '2rem',
+          fontWeight: '300',
+          letterSpacing: '1px',
+          margin: 0
+        }}>Waste Collection Overview</h2>
+        
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            style={{
+              padding: '10px 20px',
+              background: 'var(--ice-accent)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              fontWeight: '500'
+            }}
+          >
+            🔄 Refresh Data
+          </button>
+        )}
+      </div>
       
       <div style={{
         display: 'grid',

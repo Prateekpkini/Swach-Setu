@@ -137,6 +137,74 @@ app.get("/api/today-collections", async (req, res) => {
   }
 });
 
+// NEW: Manual payment update endpoint
+app.post('/api/update-payment', async (req, res) => {
+  try {
+    const { householdId, status } = req.body;
+    console.log(`Attempting to update payment for ${householdId} to ${status}`);
+    
+    const response = await fetch(`${BACKEND_API_URL}/api/update-payment`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ householdId, status }),
+      timeout: 10000
+    });
+    
+    console.log(`Backend payment update response status: ${response.status}`);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Backend API error for payment update: ${response.status} - ${errorText}`);
+      throw new Error(`Backend API error: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    console.log(`Successfully updated payment: ${result.message}`);
+    res.json(result);
+  } catch (error) {
+    console.error('Error updating payment:', error.message);
+    res.status(500).json({ 
+      error: 'Failed to update payment',
+      details: error.message 
+    });
+  }
+});
+
+// NEW: Sync payments endpoint
+app.post('/api/sync-payments', async (req, res) => {
+  try {
+    console.log(`Attempting to sync payments at: ${BACKEND_API_URL}/api/sync-payments`);
+    
+    const response = await fetch(`${BACKEND_API_URL}/api/sync-payments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      timeout: 10000
+    });
+    
+    console.log(`Backend sync response status: ${response.status}`);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Backend API error for sync: ${response.status} - ${errorText}`);
+      throw new Error(`Backend API error: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    console.log(`Successfully synced payments: ${result.message}`);
+    res.json(result);
+  } catch (error) {
+    console.error('Error syncing payments:', error.message);
+    res.status(500).json({ 
+      error: 'Failed to sync payments',
+      details: error.message 
+    });
+  }
+});
+
 // NEW: Chatbot Endpoint
 app.post('/api/chatbot', async (req, res) => {
   const { query } = req.body;

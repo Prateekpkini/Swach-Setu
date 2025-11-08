@@ -1,0 +1,291 @@
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║              CORRECTED PAYMENT & COLLECTION FLOW - SwatchaSetu                ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                    PROCESS 1: WASTE COLLECTION (FIELD)                        │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+    Collector visits household
+              │
+              ▼
+    Opens QR Scanner on mobile
+    http://localhost:5001/scanner
+              │
+              ▼
+    Scans QR code (e.g., H001)
+              │
+              ▼
+    Backend: /collect?houseid=H001
+              │
+              ▼
+    ┌─────────────────────────────┐
+    │  UPDATE CollectionLogs      │
+    │  SET Status = 'collected'   │
+    │  WHERE HouseholdID = 'H001' │
+    └─────────────────────────────┘
+              │
+              ▼
+    ┌─────────────────────────────┐
+    │  Households.FeeStatus       │
+    │  ❌ NOT CHANGED             │
+    └─────────────────────────────┘
+              │
+              ▼
+    Response: "Household H001 marked as collected."
+
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                    PROCESS 2: PAYMENT COLLECTION (OFFICE)                     │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+    Household owner comes to office
+              │
+              ▼
+    Office staff opens dashboard
+    http://localhost:3002
+              │
+              ▼
+    Navigate to "Payments" tab
+              │
+              ▼
+    Find household in list
+    (Shows: H001 - unpaid 🔴)
+              │
+              ▼
+    Click "Mark as Paid" button
+              │
+              ▼
+    Frontend: ApiService.updatePaymentStatus('H001', 'paid')
+              │
+              ▼
+    POST /api/update-payment
+    { householdId: 'H001', status: 'paid' }
+              │
+              ▼
+    ┌─────────────────────────────┐
+    │  UPDATE Households          │
+    │  SET FeeStatus = 'paid'     │
+    │  WHERE HouseholdID = 'H001' │
+    └─────────────────────────────┘
+              │
+              ▼
+    ┌─────────────────────────────┐
+    │  CollectionLogs.Status      │
+    │  ❌ NOT CHANGED             │
+    └─────────────────────────────┘
+              │
+              ▼
+    Dashboard auto-refreshes
+              │
+              ▼
+    (Shows: H001 - paid ✅)
+
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                         DATABASE STATE EXAMPLES                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+SCENARIO 1: Collected but Not Paid
+───────────────────────────────────
+CollectionLogs:
+  HouseholdID: H001
+  Status: collected ✅
+  
+Households:
+  HouseholdID: H001
+  FeeStatus: unpaid 🔴
+
+Dashboard Shows:
+  - Today's Collections: 100% (collected)
+  - Payment Rate: 0% (not paid)
+
+
+SCENARIO 2: Collected and Paid
+───────────────────────────────
+CollectionLogs:
+  HouseholdID: H001
+  Status: collected ✅
+  
+Households:
+  HouseholdID: H001
+  FeeStatus: paid ✅
+
+Dashboard Shows:
+  - Today's Collections: 100% (collected)
+  - Payment Rate: 100% (paid)
+
+
+SCENARIO 3: Not Collected but Paid (Advance Payment)
+─────────────────────────────────────────────────────
+CollectionLogs:
+  HouseholdID: H001
+  Status: pending ⏳
+  
+Households:
+  HouseholdID: H001
+  FeeStatus: paid ✅
+
+Dashboard Shows:
+  - Today's Collections: 0% (not collected)
+  - Payment Rate: 100% (paid)
+
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                         FRONTEND COMPONENTS FLOW                              │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+App.js
+  │
+  ├──► fetchData()
+  │      │
+  │      ├──► GET /api/households
+  │      │      └──► Returns: [{ HouseholdID, FeeStatus, ... }]
+  │      │
+  │      ├──► GET /api/collection-logs
+  │      │      └──► Returns: [{ HouseholdID, Status, ... }]
+  │      │
+  │      └──► GET /api/today-collections
+  │             └──► Returns: [{ HouseholdID, Status, ... }]
+  │
+  ├──► Dashboard Component
+  │      └──► Shows: Payment Rate, Collection Rate
+  │
+  ├──► HouseholdList Component
+  │      └──► Shows: All households with badges
+  │
+  └──► PaymentTracker Component
+         │
+         ├──► Filter: All / Paid / Unpaid
+         │
+         ├──► Display: Table with households
+         │
+         └──► Action: "Mark as Paid" button
+                │
+                └──► markAsPaid(householdId)
+                       │
+                       ├──► POST /api/update-payment
+                       │      { householdId, status: 'paid' }
+                       │
+                       └──► onRefresh()
+                              └──► Reload all data
+
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                         FIELD NAME COMPATIBILITY                              │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+Supabase Database          Frontend Display
+─────────────────          ────────────────
+HouseholdID          ←──►  household_id
+HeadOfHousehold      ←──►  head_of_household
+FeeStatus            ←──►  fee_status
+WasteTypePreference  ←──►  waste_type_preference
+CollectionFrequency  ←──►  collection_frequency
+
+Helper Function (in all components):
+────────────────────────────────────
+const getFieldValue = (household, field) => {
+  return household[field] ||              // Try exact match
+         household[field.toLowerCase()] || // Try lowercase
+         household[PascalCase] ||          // Try PascalCase
+         household[snake_case];            // Try snake_case
+};
+
+Usage:
+──────
+const feeStatus = getFieldValue(household, 'fee_status') || 
+                  getFieldValue(household, 'FeeStatus');
+// Works with both formats! ✅
+
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                         DAILY OPERATIONS TIMELINE                             │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+8:00 AM - Server Starts
+├─ Create daily pending logs for all households
+└─ Payment status: UNCHANGED (persists from previous day)
+
+9:00 AM - Field Collection Begins
+├─ Collector scans H001 → Status: collected
+├─ Collector scans H002 → Status: collected
+├─ Collector scans H003 → Status: collected
+└─ Payment status: UNCHANGED for all
+
+10:00 AM - Office Opens
+├─ H001 owner comes to pay → FeeStatus: paid ✅
+├─ H002 owner comes to pay → FeeStatus: paid ✅
+└─ H003 owner doesn't come → FeeStatus: unpaid 🔴
+
+Dashboard at 10:00 AM:
+├─ Today's Collections: 100% (3/3 collected)
+└─ Payment Rate: 67% (2/3 paid)
+
+5:00 PM - End of Day
+├─ Collection status: 3 collected
+├─ Payment status: 2 paid, 1 unpaid
+└─ Data persists overnight
+
+Next Day 8:00 AM:
+├─ New pending logs created
+├─ Collection status: Reset to pending
+└─ Payment status: PERSISTS (still 2 paid, 1 unpaid)
+
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                         KEY DIFFERENCES                                       │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+❌ OLD (INCORRECT) BEHAVIOR:
+─────────────────────────────
+QR Scan → Updates BOTH collection AND payment
+Daily Reset → Payment status reset to unpaid
+Result → Payment status = Collection status (always same)
+
+✅ NEW (CORRECT) BEHAVIOR:
+──────────────────────────
+QR Scan → Updates ONLY collection
+Manual Button → Updates ONLY payment
+Daily Reset → ONLY collection reset, payment persists
+Result → Payment and collection are independent
+
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                         TESTING CHECKLIST                                     │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+□ Start all servers (start-servers.bat)
+□ Open dashboard (http://localhost:3002)
+□ Check initial payment rate (should show current state)
+□ Go to Payments tab
+□ Find an unpaid household
+□ Click "Mark as Paid" button
+□ Verify button shows "Updating..."
+□ Verify status changes to "paid" (green badge)
+□ Verify dashboard payment rate increases
+□ Scan QR code for same household
+□ Verify payment status DOES NOT change
+□ Verify collection status DOES change
+□ Check Dashboard tab shows correct metrics
+□ Check Household List shows correct badges
+□ Test filter buttons (All/Paid/Unpaid)
+□ Restart server
+□ Verify payment status persists (no reset)
+□ Verify collection logs reset to pending
+
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                         SUCCESS CRITERIA                                      │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+✅ QR scan updates collection only
+✅ "Mark as Paid" button updates payment only
+✅ Payment status displays correctly in all views
+✅ Field name compatibility works (PascalCase ↔ snake_case)
+✅ Dashboard shows accurate payment rate
+✅ Payment status persists across server restarts
+✅ Collection and payment are completely independent
+✅ Auto-refresh works after payment update
+✅ Loading states show during updates
+✅ No console errors

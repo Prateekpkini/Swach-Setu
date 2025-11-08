@@ -11,6 +11,7 @@ import Navbar from './components/Navbar.js';
 import Dashboard from './components/Dashboard.js';
 import HouseholdList from './components/HouseholdList.js';
 import MapView from './components/MapView.js';
+import CollectionStatus from './components/CollectionStatus.js';
 import PaymentTracker from './components/Payments/PaymentTracker.js';
 import Chatbot from './components/Chatbot.jsx';
 import { ThemeProvider } from './contexts/ThemeContext.jsx';
@@ -24,33 +25,37 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Fetch all data in parallel
-        const [householdsData, logsData, todayData] = await Promise.all([
-          ApiService.fetchHouseholds(),
-          ApiService.fetchCollectionLogs(),
-          ApiService.fetchTodayCollections()
-        ]);
-        
-        console.log('Fetched data:', { householdsData, logsData, todayData });
-        
-        setHouseholds(householdsData);
-        setCollectionLogs(logsData);
-        setTodayCollections(todayData);
-        
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Failed to load data. Please check if the backend server is running.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch all data in parallel
+      const [householdsData, logsData, todayData] = await Promise.all([
+        ApiService.fetchHouseholds(),
+        ApiService.fetchCollectionLogs(),
+        ApiService.fetchTodayCollections()
+      ]);
+      
+      console.log('Fetched data:', { householdsData, logsData, todayData });
+      
+      setHouseholds(householdsData);
+      setCollectionLogs(logsData);
+      setTodayCollections(todayData);
+      
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError('Failed to load data. Please check if the backend server is running.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const handleRefresh = async () => {
+    await fetchData();
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -139,11 +144,18 @@ function App() {
                   households={households} 
                   collectionLogs={collectionLogs}
                   todayCollections={todayCollections}
+                  onRefresh={handleRefresh}
                 />
               )}
               {activeTab === 'households' && <HouseholdList households={households} />}
               {activeTab === 'map' && <MapView households={households} />}
-              {activeTab === 'payments' && <PaymentTracker households={households} />}
+              {activeTab === 'collections' && (
+                <CollectionStatus 
+                  households={households} 
+                  todayCollections={todayCollections}
+                />
+              )}
+              {activeTab === 'payments' && <PaymentTracker households={households} onRefresh={handleRefresh} />}
             </>
           )}
         </div>

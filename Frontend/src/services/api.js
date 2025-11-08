@@ -61,6 +61,47 @@ class ApiService {
       throw error;
     }
   }
+
+  static async updatePaymentStatus(householdId, status) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/update-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ householdId, status }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      throw error;
+    }
+  }
+
+  static async syncPayments() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/sync-payments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error syncing payments:', error);
+      throw error;
+    }
+  }
 }
 
 export default ApiService;
