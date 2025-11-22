@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { FaCommentDots, FaPaperPlane, FaSpinner } from 'react-icons/fa';
+import React, { useState, useRef, useEffect } from 'react';
+import { FaCommentDots, FaPaperPlane, FaSpinner, FaRedo } from 'react-icons/fa';
 import ApiService from '../services/api.js';
 
 const Chatbot = () => {
@@ -9,6 +9,14 @@ const Chatbot = () => {
     ]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const chatBodyRef = useRef(null);
+
+    // Auto-scroll to bottom when messages change
+    useEffect(() => {
+        if (chatBodyRef.current) {
+            chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
+        }
+    }, [messages, isLoading]);
 
     const handleSend = async () => {
         if (input.trim() === '') return;
@@ -38,6 +46,13 @@ const Chatbot = () => {
         }
     };
 
+    const handleRefresh = () => {
+        setMessages([
+            { sender: 'bot', text: 'Hello! I am SwachaSetu Helper. How can I help you with the waste collection data today?' }
+        ]);
+        setInput('');
+    };
+
 
     return (
         <>
@@ -46,9 +61,14 @@ const Chatbot = () => {
                 <div style={styles.chatWindow}>
                     <div style={styles.chatHeader}>
                         <h3>SwatchaSetu Helper</h3>
-                        <button onClick={() => setIsOpen(false)} style={styles.closeButton}>&times;</button>
+                        <div style={styles.headerButtons}>
+                            <button onClick={handleRefresh} style={styles.refreshButton} title="Refresh Chat">
+                                <FaRedo size={16} />
+                            </button>
+                            <button onClick={() => setIsOpen(false)} style={styles.closeButton}>&times;</button>
+                        </div>
                     </div>
-                    <div style={styles.chatBody}>
+                    <div style={styles.chatBody} ref={chatBodyRef}>
                         {messages.map((msg, index) => (
                             <div key={index} style={msg.sender === 'user' ? styles.userMessage : styles.botMessage}>
                                 {msg.text}
@@ -131,6 +151,25 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+    },
+    headerButtons: {
+        display: 'flex',
+        gap: '10px',
+        alignItems: 'center',
+    },
+    refreshButton: {
+        background: 'rgba(255, 255, 255, 0.2)',
+        border: 'none',
+        color: 'white',
+        fontSize: '16px',
+        cursor: 'pointer',
+        borderRadius: '50%',
+        width: '32px',
+        height: '32px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'background 0.3s ease',
     },
     closeButton: {
         background: 'none',

@@ -31,13 +31,17 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // --- Helper Function for Timezone (IST) ---
 function getTodayIST() {
-    // Get the current date and time
+    // Get the current date and time in IST timezone
     const now = new Date();
-    // Create a new Date object formatted for 'Asia/Kolkata' (IST)
-    // We are in Amtady, which is UTC+5:30
-    const istDate = new Date(now.getTime() + (330 * 60 * 1000));
+    // Use toLocaleString to get the date in IST timezone
+    const istDateString = now.toLocaleString('en-CA', { 
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
     // Return the date in 'YYYY-MM-DD' format
-    return istDate.toISOString().slice(0, 10);
+    return istDateString.split(',')[0];
 }
 
 // --- Routes ---
@@ -326,6 +330,104 @@ app.get('/collect', async (req, res) => {
     } catch (err) {
         console.error("SUPABASE ERROR in /collect:", err.message);
         res.status(500).json({ success: false, message: 'Error updating the database.', error: err.message });
+    }
+});
+
+// --- API Route for Chatbot ---
+app.post('/api/chatbot', async (req, res) => {
+    const { query } = req.body;
+    
+    if (!query) {
+        return res.status(400).json({ error: 'Query is required.' });
+    }
+
+    // Check if Gemini API key is configured
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    if (!GEMINI_API_KEY || GEMINI_API_KEY === 'your_gemini_api_key_here') {
+        console.error('❌ Chatbot request failed: GEMINI_API_KEY not configured');
+        return res.status(500).json({ 
+            error: 'Gemini API key is not configured. Please add GEMINI_API_KEY to your Backend/.env file.' 
+        });
+    }
+
+    try {
+        console.log('🤖 Chatbot query received:', query);
+        
+        // Dynamically import the Gemini AI package
+        const { GoogleGenerativeAI } = await import('@google/generative-ai');
+        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        
+        // Fetch real household data from Supabase
+        const { data: households, error: householdsError } = await supabase
+            .from('Households')
+            .select('*');
+        
+        if (householdsError) {
+            console.error('Error fetching households:', householdsError);
+            throw new Error('Failed to fetch household data from database');
+        }
+        
+        console.log(`📊 Fetched ${households?.length || 0} households from Supabase`);
+        
+        // Fetch collection logs for additional context
+        const { data: collectionLogs, error: logsError } = await supabase
+            .from('CollectionLogs')
+            .select('*')
+            .order('CollectedOn', { ascending: false })
+            .limit(100); // Get recent 100 logs
+        
+        if (logsError) {
+            console.warn('Warning: Could not fetch collection logs:', logsError);
+        }
+        
+        // Prepare data context
+        const householdDataString = JSON.stringify(households, null, 2);
+        const logsDataString = collectionLogs ? JSON.stringify(collectionLogs, null, 2) : '[]';
+        
+        // Construct a detailed prompt
+        const prompt = `
+You are SwachaPatha Helper, an AI assistant for a rural waste management system called "SwatchSetu".
+Your role is to analyze the provided household data and collection logs, then answer questions from a supervisor.
+Today is ${new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.
+
+Here is the complete household data from the Supabase database in JSON format:
+${householdDataString}
+
+Here are recent collection logs:
+${logsDataString}
+
+Based on this real data from the database, please answer the following question. Provide clear, concise answers with specific numbers and details. If a calculation is needed, perform it and show the result.
+
+Question: "${query}"
+`;
+
+        console.log('🔄 Sending request to Gemini API...');
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+        
+        console.log('✅ Gemini API response received');
+        res.json({ reply: text });
+
+    } catch (error) {
+        console.error('❌ Error with chatbot:', error.message);
+        console.error('Full error:', error);
+        
+        let errorMessage = 'Failed to get a response from the AI model.';
+        
+        if (error.message.includes('API key') || error.message.includes('API_KEY')) {
+            errorMessage = 'Invalid Gemini API key. Please check your API key in the Backend/.env file.';
+        } else if (error.message.includes('database') || error.message.includes('Supabase')) {
+            errorMessage = 'Failed to fetch data from database. Please check your Supabase connection.';
+        } else if (error.message.includes('Cannot find package')) {
+            errorMessage = 'Gemini AI package not installed. Please run: npm install @google/generative-ai';
+        }
+        
+        res.status(500).json({ 
+            error: errorMessage,
+            details: error.message 
+        });
     }
 });
 

@@ -4,7 +4,6 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import dotenv from "dotenv";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import fetch from "node-fetch";
 
 // Resolve __dirname equivalent in ESM
@@ -12,19 +11,15 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables
+// Load environment variables from Server/.env
 dotenv.config({ path: path.resolve(__dirname, ".env") });
 
 // Backend API URL - adjust port if your backend runs on different port
-const BACKEND_API_URL = process.env.BACKEND_API_URL || 'http://localhost:5000';
+const BACKEND_API_URL = process.env.BACKEND_API_URL || 'http://localhost:5001';
 
 console.log('Frontend Server Config:');
 console.log('BACKEND_API_URL:', BACKEND_API_URL);
 console.log('PORT:', process.env.PORT || 3001);
-
-// Initialize Gemini client
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
 const app = express();
 app.use(cors());
@@ -205,44 +200,38 @@ app.post('/api/sync-payments', async (req, res) => {
   }
 });
 
-// NEW: Chatbot Endpoint
+// NEW: Chatbot Endpoint - Proxy to Backend
 app.post('/api/chatbot', async (req, res) => {
-  const { query } = req.body;
-  if (!query) {
-    return res.status(400).json({ error: 'Query is required.' });
-  }
-
   try {
-    // Fetch real household data from backend
-    const householdsResponse = await fetch(`${BACKEND_API_URL}/api/households`);
-    const households = await householdsResponse.json();
+    const { query } = req.body;
+    console.log('🤖 Proxying chatbot query to backend:', query);
     
-    // Provide the household data as context for the model
-    const householdDataString = JSON.stringify(households, null, 2);
-
-    // Construct a detailed prompt
-    const prompt = `
-      You are SwachaPatha Helper, an AI assistant for a rural waste management system called "SwatchaPatha".
-      Your role is to analyze the provided household data and answer questions from a supervisor.
-      Today is ${new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.
-      
-      Here is the complete household data in JSON format:
-      ${householdDataString}
-
-      Based on this data, please answer the following question. Provide clear, concise answers. If a calculation is needed, perform it and show the result.
-      
-      Question: "${query}"
-    `;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-
-    res.json({ reply: text });
-
+    const response = await fetch(`${BACKEND_API_URL}/api/chatbot`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query }),
+      timeout: 30000 // 30 second timeout for AI responses
+    });
+    
+    console.log(`Backend chatbot response status: ${response.status}`);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error(`Backend chatbot error: ${response.status}`, errorData);
+      return res.status(response.status).json(errorData);
+    }
+    
+    const result = await response.json();
+    console.log('✅ Chatbot response received from backend');
+    res.json(result);
   } catch (error) {
-    console.error('Error with Gemini API:', error);
-    res.status(500).json({ error: 'Failed to get a response from the AI model.' });
+    console.error('Error proxying chatbot request:', error.message);
+    res.status(500).json({ 
+      error: 'Failed to connect to chatbot service. Please ensure the backend server is running.',
+      details: error.message 
+    });
   }
 });
 
