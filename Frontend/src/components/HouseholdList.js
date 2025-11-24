@@ -46,7 +46,7 @@ function HouseholdList({ households }) {
             {households.map((household, index) => {
               const householdId = getFieldValue(household, 'household_id') || getFieldValue(household, 'HouseholdID');
               const headOfHousehold = getFieldValue(household, 'head_of_household') || getFieldValue(household, 'HeadOfHousehold');
-              const wasteType = getFieldValue(household, 'waste_type_preference') || getFieldValue(household, 'WasteTypePreference');
+              const wasteType = getFieldValue(household, 'waste_preference') || getFieldValue(household, 'WastePreference');
               const feeStatus = getFieldValue(household, 'fee_status') || getFieldValue(household, 'FeeStatus');
               const collectionFreq = getFieldValue(household, 'collection_frequency') || getFieldValue(household, 'CollectionFrequency');
               
@@ -59,17 +59,26 @@ function HouseholdList({ households }) {
                   <td style={{ padding: '12px 10px', color: 'var(--ice-text)' }}>{headOfHousehold}</td>
                   <td style={{ padding: '12px 10px' }}>
                     <span style={{
-                      padding: '4px 8px',
+                      padding: '6px 12px',
                       borderRadius: '12px',
-                      fontSize: '0.8rem',
+                      fontSize: '0.85rem',
+                      fontWeight: '500',
                       background: wasteType === 'mixed' ? 'rgba(255, 145, 0, 0.2)' :
                                  wasteType === 'dry' ? 'rgba(33, 150, 243, 0.2)' :
-                                 'rgba(76, 175, 80, 0.2)',
+                                 wasteType === 'wet' ? 'rgba(76, 175, 80, 0.2)' :
+                                 'rgba(128, 128, 128, 0.2)',
                       color: wasteType === 'mixed' ? '#FF9100' :
                              wasteType === 'dry' ? '#2196F3' :
-                             '#4CAF50'
+                             wasteType === 'wet' ? '#4CAF50' :
+                             '#666',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
                     }}>
-                      {wasteType}
+                      {wasteType === 'mixed' && '🗂️'}
+                      {wasteType === 'dry' && '📄'}
+                      {wasteType === 'wet' && '💧'}
+                      {wasteType || 'Unknown'}
                     </span>
                   </td>
                   <td style={{ padding: '12px 10px' }}>

@@ -97,7 +97,8 @@ app.get('/api/households', async (req, res) => {
         
         const { data: households, error } = await supabase
             .from('Households')
-            .select('*');
+            .select('*')
+            .order('HouseholdID', { ascending: true });
         
         if (error) {
             console.error("Error fetching households:", error);

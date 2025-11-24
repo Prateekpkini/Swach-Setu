@@ -22,16 +22,16 @@ function Dashboard({ households, collectionLogs, todayCollections, onRefresh }) 
   
   const wasteTypes = {
     mixed: households.filter(h => 
-      getFieldValue(h, 'waste_type_preference') === 'mixed' || 
-      getFieldValue(h, 'WasteTypePreference') === 'mixed'
+      getFieldValue(h, 'waste_preference') === 'mixed' || 
+      getFieldValue(h, 'WastePreference') === 'mixed'
     ).length,
     dry: households.filter(h => 
-      getFieldValue(h, 'waste_type_preference') === 'dry' || 
-      getFieldValue(h, 'WasteTypePreference') === 'dry'
+      getFieldValue(h, 'waste_preference') === 'dry' || 
+      getFieldValue(h, 'WastePreference') === 'dry'
     ).length,
     wet: households.filter(h => 
-      getFieldValue(h, 'waste_type_preference') === 'wet' || 
-      getFieldValue(h, 'WasteTypePreference') === 'wet'
+      getFieldValue(h, 'waste_preference') === 'wet' || 
+      getFieldValue(h, 'WastePreference') === 'wet'
     ).length
   };
 

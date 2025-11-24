@@ -5,6 +5,7 @@ import ApiService from "../../services/api.js";
 function PaymentTracker({ households, onRefresh }) {
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState({});
+  const [resetting, setResetting] = useState(false);
 
   // Helper function to get field value from either format (Supabase PascalCase or snake_case)
   const getFieldValue = (household, field) => {
@@ -40,21 +41,78 @@ function PaymentTracker({ households, onRefresh }) {
     }
   };
 
+  const resetAllPayments = async () => {
+    if (!window.confirm('Are you sure you want to reset ALL payments to unpaid? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setResetting(true);
+      
+      // Get all paid households
+      const paidHouseholds = households.filter(h => {
+        const feeStatus = getFieldValue(h, 'fee_status') || getFieldValue(h, 'FeeStatus');
+        return feeStatus === 'paid';
+      });
+
+      // Reset each paid household to unpaid
+      for (const household of paidHouseholds) {
+        const householdId = getFieldValue(household, 'household_id') || getFieldValue(household, 'HouseholdID');
+        await ApiService.updatePaymentStatus(householdId, 'unpaid');
+      }
+
+      console.log(`✅ Reset ${paidHouseholds.length} households to unpaid`);
+      
+      // Refresh the data
+      if (onRefresh) {
+        await onRefresh();
+      }
+      
+      alert(`Successfully reset ${paidHouseholds.length} payments to unpaid.`);
+      
+    } catch (error) {
+      console.error('Error resetting payments:', error);
+      alert('Failed to reset payments. Please try again.');
+    } finally {
+      setResetting(false);
+    }
+  };
+
   return (
     <div className="payment-tracker">
       <h2 className="title">Payment Tracking</h2>
 
-      {/* Filters */}
+      {/* Filters and Reset Button */}
       <div className="filters">
-        {["all", "paid", "unpaid"].map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`filter-btn ${filter === f ? "active" : ""}`}
-          >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
-          </button>
-        ))}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          {["all", "paid", "unpaid"].map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`filter-btn ${filter === f ? "active" : ""}`}
+            >
+              {f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+        </div>
+        
+        <button
+          onClick={resetAllPayments}
+          disabled={resetting}
+          style={{
+            padding: '8px 16px',
+            background: '#f44336',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: resetting ? 'not-allowed' : 'pointer',
+            fontSize: '0.9rem',
+            fontWeight: '500',
+            opacity: resetting ? 0.6 : 1
+          }}
+        >
+          {resetting ? 'Resetting...' : '🔄 Reset All Payments'}
+        </button>
       </div>
 
       {/* Table */}
