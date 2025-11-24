@@ -44,6 +44,26 @@ function getTodayIST() {
     return istDateString.split(',')[0];
 }
 
+// --- Helper Function to get current IST timestamp ---
+function getCurrentISTTimestamp() {
+    // Get current UTC time
+    const now = new Date();
+    
+    // Add IST offset (+5:30 hours = 330 minutes)
+    const istTime = new Date(now.getTime() + (330 * 60 * 1000));
+    
+    // Get IST time components
+    const year = istTime.getUTCFullYear();
+    const month = String(istTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(istTime.getUTCDate()).padStart(2, '0');
+    const hours = String(istTime.getUTCHours()).padStart(2, '0');
+    const minutes = String(istTime.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(istTime.getUTCSeconds()).padStart(2, '0');
+    
+    // Format as ISO string with correct IST offset (+05:30)
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+05:30`;
+}
+
 // --- Routes ---
 
 // Health Check Route
@@ -276,7 +296,7 @@ app.get('/collect', async (req, res) => {
             .update({ 
                 Status: 'collected', 
                 CollectorName: 'WebApp Scanner', 
-                CollectedOn: new Date().toISOString() // Set collection time to now
+                CollectedOn: getCurrentISTTimestamp() // Set collection time to current IST
             })
             .eq('HouseholdID', houseId)
             .eq('Status', 'pending')
@@ -316,7 +336,7 @@ app.get('/collect', async (req, res) => {
                     HouseholdID: houseId, 
                     Status: 'collected', 
                     CollectorName: 'WebApp Scanner',
-                    CollectedOn: new Date().toISOString() 
+                    CollectedOn: getCurrentISTTimestamp() 
                 });
             
             if (insertError) throw insertError;
@@ -468,7 +488,7 @@ async function addDailyPendingLogs() {
         .map(h => ({
             HouseholdID: h.HouseholdID,
             Status: 'pending',
-            CollectedOn: startOfTodayIST // Set to start of the day
+            CollectedOn: getCurrentISTTimestamp() // Set to current IST time
         }));
 
     // 4. Insert the missing logs (payment status is managed separately)
