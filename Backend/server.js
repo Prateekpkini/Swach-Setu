@@ -180,9 +180,20 @@ app.post('/api/update-payment', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Status must be "paid" or "unpaid"' });
         }
         
+        // Prepare update data
+        const updateData = { FeeStatus: status };
+        
+        // If marking as paid, set the payment date to current IST timestamp
+        if (status === 'paid') {
+            updateData.PaymentDate = getCurrentISTTimestamp();
+        } else {
+            // If marking as unpaid, clear the payment date
+            updateData.PaymentDate = null;
+        }
+        
         const { error } = await supabase
             .from('Households')
-            .update({ FeeStatus: status })
+            .update(updateData)
             .eq('HouseholdID', householdId);
         
         if (error) throw error;
@@ -208,9 +219,20 @@ app.get('/api/update-payment/:householdId/:status', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Status must be "paid" or "unpaid"' });
         }
         
+        // Prepare update data
+        const updateData = { FeeStatus: status };
+        
+        // If marking as paid, set the payment date to current IST timestamp
+        if (status === 'paid') {
+            updateData.PaymentDate = getCurrentISTTimestamp();
+        } else {
+            // If marking as unpaid, clear the payment date
+            updateData.PaymentDate = null;
+        }
+        
         const { error } = await supabase
             .from('Households')
-            .update({ FeeStatus: status })
+            .update(updateData)
             .eq('HouseholdID', householdId);
         
         if (error) throw error;
@@ -292,26 +314,28 @@ app.get('/collect', async (req, res) => {
         const endOfTodayIST = `${today_ist}T23:59:59+05:30`;
 
         // --- Step 1: Try to UPDATE a 'pending' log for today. ---
-        const { data: updateData, error: updateError, count: updateCount } = await supabase
+        const { data: updateData, error: updateError } = await supabase
             .from('CollectionLogs')
             .update({ 
                 Status: 'collected', 
-                CollectorName: 'WebApp Scanner', 
+                CollectorName: 'C-01', 
                 CollectedOn: getCurrentISTTimestamp() // Set collection time to current IST
             })
             .eq('HouseholdID', houseId)
             .eq('Status', 'pending')
             .gte('CollectedOn', startOfTodayIST) // Check for logs from today (IST)
-            .lte('CollectedOn', endOfTodayIST);
+            .lte('CollectedOn', endOfTodayIST)
+            .select(); // Need to select to get the updated data
 
         if (updateError) throw updateError;
 
-        if (updateCount > 0) {
-            // SUCCESS: We updated a pending log (collection only, payment is separate)
-            return res.status(200).json({ success: true, message: `Household ${houseId} marked as collected.` });
+        // Check if we actually updated a record
+        if (updateData && updateData.length > 0) {
+            // SUCCESS: We updated a pending log to collected
+            return res.status(200).json({ success: true, message: `${houseId} collected` });
         }
 
-        // --- Step 2: If update failed (count=0), check if it's already collected. ---
+        // --- Step 2: If update failed (no pending log), check if it's already collected. ---
         const { data: checkData, error: checkError } = await supabase
             .from('CollectionLogs')
             .select('Status')
@@ -324,7 +348,7 @@ app.get('/collect', async (req, res) => {
         if (checkData && checkData.length > 0) {
             if (checkData[0].Status === 'collected') {
                 // It was already collected. This is a duplicate scan.
-                return res.status(200).json({ success: true, message: `Household ${houseId} has already been collected today.` });
+                return res.status(200).json({ success: true, message: `${houseId} has already been collected today` });
             }
         }
         
@@ -336,17 +360,17 @@ app.get('/collect', async (req, res) => {
                 .insert({ 
                     HouseholdID: houseId, 
                     Status: 'collected', 
-                    CollectorName: 'WebApp Scanner',
+                    CollectorName: 'C-01',
                     CollectedOn: getCurrentISTTimestamp() 
                 });
             
             if (insertError) throw insertError;
             
-            return res.status(201).json({ success: true, message: `Collection logged for Household ${houseId}.` });
+            return res.status(201).json({ success: true, message: `${houseId} collected` });
         }
         
         // Fallback for any other state
-        return res.status(200).json({ success: true, message: `Scan for Household ${houseId} processed.` });
+        return res.status(200).json({ success: true, message: `${houseId} scan processed` });
 
     } catch (err) {
         console.error("SUPABASE ERROR in /collect:", err.message);

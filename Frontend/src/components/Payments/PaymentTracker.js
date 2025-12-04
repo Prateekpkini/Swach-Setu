@@ -123,6 +123,7 @@ function PaymentTracker({ households, onRefresh }) {
               <th>ID</th>
               <th>Head of Household</th>
               <th>Status</th>
+              <th>Payment Date & Time</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -131,6 +132,26 @@ function PaymentTracker({ households, onRefresh }) {
               const householdId = getFieldValue(household, 'household_id') || getFieldValue(household, 'HouseholdID');
               const headOfHousehold = getFieldValue(household, 'head_of_household') || getFieldValue(household, 'HeadOfHousehold');
               const feeStatus = getFieldValue(household, 'fee_status') || getFieldValue(household, 'FeeStatus');
+              const paymentDate = getFieldValue(household, 'payment_date') || getFieldValue(household, 'PaymentDate');
+              
+              // Format payment date
+              const formatPaymentDate = (dateString) => {
+                if (!dateString) return '-';
+                try {
+                  const date = new Date(dateString);
+                  return date.toLocaleString('en-IN', {
+                    timeZone: 'Asia/Kolkata',
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  });
+                } catch (e) {
+                  return '-';
+                }
+              };
               
               return (
                 <tr key={householdId} className={idx % 2 === 0 ? "even" : "odd"}>
@@ -140,6 +161,13 @@ function PaymentTracker({ households, onRefresh }) {
                     <span className={`status ${feeStatus}`}>
                       {feeStatus}
                     </span>
+                  </td>
+                  <td style={{ 
+                    fontSize: '0.9rem',
+                    color: paymentDate ? '#2e7d32' : '#999',
+                    fontWeight: paymentDate ? '500' : 'normal'
+                  }}>
+                    {formatPaymentDate(paymentDate)}
                   </td>
                   <td>
                     {feeStatus === "unpaid" && (
